@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>짧은 주소링크</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: bold;
+        }
+        
+        input[type="url"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .result {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        .short-url {
+            background: #e9ecef;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 0.5rem 0;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            font-size: 14px;
+            padding: 8px 16px;
+            margin-top: 0.5rem;
+        }
+        
+        .error {
+            color: #dc3545;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 짧은 주소링크</h1>
+        
+        <form id="urlForm">
+            <div class="form-group">
+                <label for="originalUrl">긴 URL을 입력하세요:</label>
+                <input type="url" id="originalUrl" placeholder="https://example.com/very-long-url" required>
+            </div>
+            <button type="submit">짧은 URL 생성</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            생성 중...
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result">
+            <h3>짧은 URL이 생성되었습니다!</h3>
+            <div class="short-url" id="shortUrl"></div>
+            <button class="copy-btn" onclick="copyToClipboard()">복사하기</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('urlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const originalUrl = document.getElementById('originalUrl').value;
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const result = document.getElementById('result');
+            
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            result.classList.remove('show');
+            
+            try {
+                const response = await fetch('/shorten', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ originalUrl })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('shortUrl').textContent = data.shortUrl;
+                    result.classList.add('show');
+                } else {
+                    error.textContent = data.error;
+                    error.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('연결 오류:', err);
+                if (err.name === 'TypeError' && err.message.includes('fetch')) {
+                    error.textContent = '서버가 실행되지 않았습니다. 서버를 먼저 실행해주세요.';
+                } else if (err.name === 'NetworkError') {
+                    error.textContent = '네트워크 연결을 확인해주세요.';
+                } else {
+                    error.textContent = '서버 연결에 실패했습니다. 서버 상태를 확인해주세요.';
+                }
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+        
+        function copyToClipboard() {
+            const shortUrl = document.getElementById('shortUrl').textContent;
+            navigator.clipboard.writeText(shortUrl).then(() => {
+                alert('클립보드에 복사되었습니다!');
+            });
+        }
+    </script>
+</body>
+</html>
